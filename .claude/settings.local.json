@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(ls)",
+      "Bash(cat MEMORY.md)",
+      "WebFetch(domain:www.paindoc.co.nz)",
+      "Bash(npx playwright *)",
+      "Bash(npm list *)",
+      "Bash(node screenshot.mjs)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\mwall\\\\Documents\\\\New folder\\\\Questionnaire\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(npm install *)",
+      "Bash(npx vite *)"
+    ]
+  }
+}
