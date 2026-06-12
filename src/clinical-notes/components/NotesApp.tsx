@@ -6,18 +6,9 @@ import VoiceRecorder from './VoiceRecorder';
 import SOAPNote from './SOAPNote';
 import NoteHistory from './NoteHistory';
 import { generateSOAP } from '../lib/claude';
-import type { NoteEntry } from '../../lib/types';
+import type { NoteEntry, SOAPNote as SOAPNoteType } from '../../lib/types';
 
 const today = new Date().toISOString().split('T')[0];
-
-const notesStyles = `
-  .notes-root { --bg: #f5f4f0; --surface: #ffffff; --surface2: #f9f8f5; --border: rgba(0,0,0,0.09); --border-md: rgba(0,0,0,0.15); --text: #1a1a18; --text-muted: #6b6a65; --text-hint: #a09f9a; --accent: #0F6E56; --accent-hover: #085041; --accent-light: #E1F5EE; --accent-text: #085041; --red: #A32D2D; --red-light: #FCEBEB; --amber-light: #FAEEDA; --amber-text: #633806; --radius: 10px; --radius-sm: 6px; }
-  @media (prefers-color-scheme: dark) {
-    .notes-root { --bg: #1a1a18; --surface: #242422; --surface2: #2c2c2a; --border: rgba(255,255,255,0.08); --border-md: rgba(255,255,255,0.14); --text: #eeecea; --text-muted: #9e9d98; --text-hint: #6b6a65; --accent-light: #04342C; --accent-text: #9FE1CB; --red-light: #501313; }
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-`;
 
 function loadHistory(): NoteEntry[] {
   try {
@@ -35,12 +26,12 @@ export default function NotesApp() {
   const [apiKey, setApiKey]   = useState(() => localStorage.getItem('paindoc_api_key') || '');
   const [patient, setPatient] = useState({ name: '', dob: '', visitDate: today });
   const [transcript, setTranscript] = useState('');
-  const [soap, setSoap]   = useState<import('../../lib/types').SOAPNote | null>(null);
+  const [soap, setSoap]   = useState<SOAPNoteType | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [history, setHistory] = useState<NoteEntry[]>(loadHistory);
 
-  const handleApiKey = (val: string) => { setApiKey(val); localStorage.setItem('paindoc_api_key', val); };
+  const handleApiKey  = (val: string) => { setApiKey(val); localStorage.setItem('paindoc_api_key', val); };
   const handlePatient = (key: string, val: string) => setPatient(p => ({ ...p, [key]: val }));
 
   const handleClear = useCallback(() => {
@@ -52,8 +43,8 @@ export default function NotesApp() {
 
   const handleGenerate = async () => {
     setError('');
-    if (!apiKey.trim())      { setError('Please enter your Anthropic API key.'); return; }
-    if (!transcript.trim())  { setError('No notes to process — dictate or type something first.'); return; }
+    if (!apiKey.trim())     { setError('Please enter your Anthropic API key.'); return; }
+    if (!transcript.trim()) { setError('No notes to process — dictate or type something first.'); return; }
     setLoading(true);
     setSoap(null);
     try {
@@ -76,53 +67,47 @@ export default function NotesApp() {
     saveHistory(updated);
   };
 
-  const s: Record<string, React.CSSProperties> = {
-    page: { padding: '1.5rem 0' },
-    heading: { fontFamily: 'Georgia, serif', fontSize: '1.4rem', color: 'var(--text)', marginBottom: '0.25rem' },
-    sub: { fontSize: '0.75rem', fontFamily: 'Courier New, monospace', color: 'var(--text-hint)', letterSpacing: '0.06em', marginBottom: '1.75rem' },
-    container: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
-    btnRow: { display: 'flex', gap: '0.75rem', width: '100%', maxWidth: 720, marginBottom: '1rem' },
-    generateBtn: { flex: 1, padding: '0.85rem', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'Georgia, serif', fontSize: '1rem', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s' },
-    newBtn: { padding: '0.85rem 1.1rem', background: 'none', border: '1px solid var(--border-md)', borderRadius: 8, fontFamily: 'Georgia, serif', fontSize: '0.9rem', color: 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' },
-    spinner: { width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' },
-    errorBox: { width: '100%', maxWidth: 720, background: 'var(--red-light)', border: '1px solid var(--red)', borderRadius: 8, padding: '0.85rem 1rem', fontSize: '0.88rem', color: 'var(--red)', marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: 8 },
-    divider: { width: '100%', maxWidth: 720, borderTop: '1px solid var(--border)', margin: '1.5rem 0 1.25rem' },
-  };
-
   return (
-    <div className="notes-root" style={s.page}>
-      <style>{notesStyles}</style>
-      <h1 style={s.heading}>Clinical Notes</h1>
-      <p style={s.sub}>Dictate or type — Claude structures into SOAP format</p>
+    <div className="py-6 flex flex-col items-center">
+      <ApiKeyInput value={apiKey} onChange={handleApiKey} />
+      <PatientFields values={patient} onChange={handlePatient} />
+      <VoiceRecorder transcript={transcript} onTranscriptChange={setTranscript} onClear={handleClear} />
 
-      <div style={s.container}>
-        <ApiKeyInput value={apiKey} onChange={handleApiKey} />
-        <PatientFields values={patient} onChange={handlePatient} />
-        <VoiceRecorder transcript={transcript} onTranscriptChange={setTranscript} onClear={handleClear} />
-
-        {error && (
-          <div style={s.errorBox}>
-            <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-            {error}
-          </div>
-        )}
-
-        <div style={s.btnRow}>
-          <button style={s.generateBtn} onClick={handleGenerate} disabled={loading}>
-            {loading ? <><span style={s.spinner} /> Structuring notes…</> : <><Wand2 size={16} /> Generate SOAP Note</>}
-          </button>
-          {(soap || transcript) && <button style={s.newBtn} onClick={handleClear}>New patient</button>}
+      {error && (
+        <div className="w-full max-w-2xl mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-start gap-2">
+          <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+          {error}
         </div>
+      )}
 
-        {soap && <SOAPNote soap={soap} patientName={patient.name} dob={patient.dob} visitDate={patient.visitDate} />}
-
-        {history.length > 0 && (
-          <>
-            <div style={s.divider} />
-            <NoteHistory notes={history} onDelete={handleDeleteNote} onClearAll={() => { setHistory([]); saveHistory([]); }} />
-          </>
+      <div className="w-full max-w-2xl flex gap-3 mb-4">
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          className="flex-1 py-3 bg-[#0B5E47] text-white rounded-xl font-semibold text-sm hover:bg-[#085041] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+        >
+          {loading
+            ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Structuring notes…</>
+            : <><Wand2 size={16} /> Generate SOAP Note</>}
+        </button>
+        {(soap || transcript) && (
+          <button
+            onClick={handleClear}
+            className="px-5 py-3 rounded-xl border-2 border-[#E2E8E6] text-[#6B7E7A] text-sm font-semibold hover:bg-[#F4F3EF] transition"
+          >
+            New patient
+          </button>
         )}
       </div>
+
+      {soap && <SOAPNote soap={soap} patientName={patient.name} dob={patient.dob} visitDate={patient.visitDate} />}
+
+      {history.length > 0 && (
+        <>
+          <div className="w-full max-w-2xl border-t border-[#E2E8E6] my-5" />
+          <NoteHistory notes={history} onDelete={handleDeleteNote} onClearAll={() => { setHistory([]); saveHistory([]); }} />
+        </>
+      )}
     </div>
   );
 }

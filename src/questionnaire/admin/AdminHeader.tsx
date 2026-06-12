@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
 export default function AdminHeader() {
@@ -23,12 +23,25 @@ export default function AdminHeader() {
             <p className="text-xs text-gray-400 mt-0.5 font-medium">Admin Portal</p>
           </div>
         </div>
-        <button
-          onClick={signOut}
-          className="text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors"
-        >
-          Sign out
-        </button>
+
+        <div className="flex items-center gap-4">
+          <Link
+            to="/notes"
+            className="hidden sm:flex items-center gap-1.5 text-sm text-[#0B5E47] font-semibold hover:text-[#085041] transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+            Clinical Notes
+          </Link>
+          <span className="hidden sm:block w-px h-4 bg-gray-200" />
+          <button
+            onClick={signOut}
+            className="text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </header>
   );

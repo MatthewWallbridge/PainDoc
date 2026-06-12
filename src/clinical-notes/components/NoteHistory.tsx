@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { Clock, ChevronDown, ChevronUp, Copy, Check, Trash2 } from 'lucide-react';
 import type { NoteEntry, SOAPNote } from '../../lib/types';
 
-const SECTIONS: Array<{ key: keyof SOAPNote; label: string }> = [
-  { key: 'subjective', label: 'S — Subjective' },
-  { key: 'objective',  label: 'O — Objective'  },
-  { key: 'assessment', label: 'A — Assessment'  },
-  { key: 'plan',       label: 'P — Plan'        },
+const SECTIONS: Array<{ key: keyof SOAPNote; label: string; short: string }> = [
+  { key: 'subjective', label: 'Subjective',  short: 'S' },
+  { key: 'objective',  label: 'Objective',   short: 'O' },
+  { key: 'assessment', label: 'Assessment',  short: 'A' },
+  { key: 'plan',       label: 'Plan',        short: 'P' },
 ];
 
 function NoteCard({ note, onDelete }: { note: NoteEntry; onDelete: (id: string) => void }) {
@@ -15,7 +15,7 @@ function NoteCard({ note, onDelete }: { note: NoteEntry; onDelete: (id: string) 
 
   const copy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const text = SECTIONS.map(s => `${s.label}\n${note.soap[s.key] || '—'}`).join('\n\n');
+    const text = SECTIONS.map(s => `${s.short} — ${s.label}\n${note.soap[s.key] || '—'}`).join('\n\n');
     const header = `SOAP NOTE${note.patientName ? ' — ' + note.patientName : ''}${note.dob ? ' · DOB: ' + note.dob : ''}${note.visitDate ? ' · ' + note.visitDate : ''}\n\n`;
     navigator.clipboard.writeText(header + text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
@@ -23,39 +23,42 @@ function NoteCard({ note, onDelete }: { note: NoteEntry; onDelete: (id: string) 
   const timeStr = new Date(note.savedAt).toLocaleTimeString('en-NZ', { hour: '2-digit', minute: '2-digit' });
   const dateStr = new Date(note.savedAt).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' });
 
-  const s: Record<string, React.CSSProperties> = {
-    card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', marginBottom: '0.6rem' },
-    header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1.1rem', cursor: 'pointer', userSelect: 'none', gap: 12 },
-    left: { display: 'flex', flexDirection: 'column', gap: 3, flex: 1, minWidth: 0 },
-    name: { fontSize: '0.9rem', fontFamily: 'Georgia, serif', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-    meta: { fontSize: '0.7rem', fontFamily: 'Courier New, monospace', color: 'var(--text-hint)', letterSpacing: '0.04em' },
-    actions: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
-    copyBtn: { display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.7rem', fontFamily: 'Courier New, monospace', color: 'var(--accent-text)', background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 4, padding: '3px 8px', cursor: 'pointer' },
-    deleteBtn: { display: 'flex', alignItems: 'center', background: 'none', border: 'none', color: 'var(--text-hint)', cursor: 'pointer', padding: 4 },
-    body: { borderTop: '1px solid var(--border)', padding: '1rem 1.1rem' },
-    sectionLabel: { fontSize: '0.65rem', fontFamily: 'Courier New, monospace', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#1D9E75', fontWeight: 'bold', marginBottom: '0.3rem', marginTop: '0.75rem' },
-    sectionContent: { fontSize: '0.88rem', lineHeight: 1.7, color: 'var(--text)', whiteSpace: 'pre-wrap' },
-  };
-
   return (
-    <div style={s.card}>
-      <div style={s.header} onClick={() => setExpanded(v => !v)}>
-        <div style={s.left}>
-          <div style={s.name}>{note.patientName || 'Unknown patient'}</div>
-          <div style={s.meta}>{dateStr} · {timeStr}{note.visitDate ? ` · Seen: ${note.visitDate}` : ''}</div>
+    <div className="bg-white rounded-2xl border border-[#E2E8E6] shadow-sm overflow-hidden mb-3">
+      <div className="px-5 py-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-[#F9F8F5] transition" onClick={() => setExpanded(v => !v)}>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-[#1A2623] truncate" style={{ fontFamily: 'Georgia, serif' }}>
+            {note.patientName || 'Unknown patient'}
+          </p>
+          <p className="text-[11px] text-[#9BADA9] font-mono mt-0.5">
+            {dateStr} · {timeStr}{note.visitDate ? ` · Seen: ${note.visitDate}` : ''}
+          </p>
         </div>
-        <div style={s.actions}>
-          <button style={s.copyBtn} onClick={copy}>{copied ? <Check size={11} /> : <Copy size={11} />}{copied ? 'Copied' : 'Copy'}</button>
-          <button style={s.deleteBtn} onClick={e => { e.stopPropagation(); onDelete(note.id); }}><Trash2 size={14} /></button>
-          <span style={{ color: 'var(--text-hint)', flexShrink: 0 }}>{expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={copy}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#B0D8CC] bg-[#E6F3EE] text-[#085041] text-xs font-semibold hover:bg-[#D4EDE5] transition"
+          >
+            {copied ? <Check size={11} /> : <Copy size={11} />}{copied ? 'Copied' : 'Copy'}
+          </button>
+          <button
+            onClick={e => { e.stopPropagation(); onDelete(note.id); }}
+            className="p-1.5 rounded-lg text-[#C5D4D0] hover:text-red-400 hover:bg-red-50 transition"
+          >
+            <Trash2 size={14} />
+          </button>
+          <span className="text-[#C5D4D0]">{expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</span>
         </div>
       </div>
+
       {expanded && (
-        <div style={s.body}>
-          {SECTIONS.map((sec, i) => (
+        <div className="px-5 pb-4 pt-1 border-t border-[#F0F5F3] space-y-3">
+          {SECTIONS.map(sec => (
             <div key={sec.key}>
-              <div style={{ ...s.sectionLabel, marginTop: i === 0 ? 0 : '0.75rem' }}>{sec.label}</div>
-              <div style={s.sectionContent}>{note.soap[sec.key] || '—'}</div>
+              <p className="text-[10px] font-bold text-[#0B5E47] uppercase tracking-widest mb-1">{sec.short} — {sec.label}</p>
+              <p className="text-sm text-[#374845] leading-relaxed whitespace-pre-wrap" style={{ fontFamily: 'Georgia, serif' }}>
+                {note.soap[sec.key] || '—'}
+              </p>
             </div>
           ))}
         </div>
@@ -68,22 +71,26 @@ export default function NoteHistory({ notes, onDelete, onClearAll }: { notes: No
   const [open, setOpen] = useState(true);
   if (!notes.length) return null;
 
-  const s: Record<string, React.CSSProperties> = {
-    wrapper: { width: '100%', maxWidth: 720, marginBottom: '1rem' },
-    headerRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' },
-    label: { fontSize: '0.68rem', fontFamily: 'Courier New, monospace', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-hint)', display: 'flex', alignItems: 'center', gap: 6 },
-    dot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' },
-    clearBtn: { fontSize: '0.68rem', fontFamily: 'Courier New, monospace', color: 'var(--text-hint)', background: 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '3px 8px', cursor: 'pointer', letterSpacing: '0.04em' },
-    toggleBtn: { fontSize: '0.68rem', fontFamily: 'Courier New, monospace', color: 'var(--text-hint)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 },
-  };
-
   return (
-    <div style={s.wrapper}>
-      <div style={s.headerRow}>
-        <div style={s.label}><span style={s.dot} /><Clock size={11} />Today's Notes ({notes.length})</div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button style={s.toggleBtn} onClick={() => setOpen(v => !v)}>{open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}{open ? 'Hide' : 'Show'}</button>
-          <button style={s.clearBtn} onClick={onClearAll}>Clear all</button>
+    <div className="w-full max-w-2xl">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Clock size={13} className="text-[#9BADA9]" />
+          <span className="text-[10px] font-bold text-[#9BADA9] uppercase tracking-widest">Today's Notes ({notes.length})</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setOpen(v => !v)}
+            className="text-xs text-[#9BADA9] hover:text-[#6B7E7A] flex items-center gap-1 transition"
+          >
+            {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}{open ? 'Hide' : 'Show'}
+          </button>
+          <button
+            onClick={onClearAll}
+            className="text-xs text-[#9BADA9] hover:text-red-400 border border-[#E2E8E6] px-2.5 py-1 rounded-lg transition"
+          >
+            Clear all
+          </button>
         </div>
       </div>
       {open && notes.map(note => <NoteCard key={note.id} note={note} onDelete={onDelete} />)}
