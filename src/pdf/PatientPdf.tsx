@@ -4,23 +4,28 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
   pdf,
 } from '@react-pdf/renderer';
 import type { PatientRecord } from '../lib/types';
 import {
   ODI_QUESTIONS,
-  HADS_QUESTIONS,
+  PHQ9_QUESTIONS,
+  GAD7_QUESTIONS,
+  SECTION_A_QUESTIONS,
   odiCategory,
-  hadsCategory,
+  phq9Category,
+  gad7Category,
 } from '../lib/assessments';
 
 const C = {
-  ink: '#0f172a',
+  ink: '#134e4a',
   sub: '#64748b',
   faint: '#94a3b8',
-  line: '#e2e8f0',
-  panel: '#f8fafc',
+  line: '#ccfbf1',
+  panel: '#f0fdfa',
+  brand: '#0891b2',
   green: '#047857',
   yellow: '#b45309',
   orange: '#c2410c',
@@ -42,8 +47,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     lineHeight: 1.4,
   },
-  title: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: C.green },
-  subtitle: { fontSize: 9, color: C.green, marginTop: 2 },
+  title: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: C.brand },
+  subtitle: { fontSize: 9, color: C.brand, marginTop: 2 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -80,6 +85,10 @@ const styles = StyleSheet.create({
   aCell: { width: '54%', color: C.ink },
   sCell: { width: '8%', textAlign: 'right', color: C.faint, fontFamily: 'Helvetica-Bold' },
   tag: { fontSize: 7, fontFamily: 'Helvetica-Bold', marginBottom: 2 },
+  bodyMapImg: { width: '100%', maxHeight: 220, objectFit: 'contain', marginBottom: 16 },
+  sectionAItem: { borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 6 },
+  sectionAQuestion: { fontSize: 8, color: C.faint, marginBottom: 2 },
+  sectionAAnswer: { fontSize: 9.5, color: C.ink, marginBottom: 1 },
   footer: {
     position: 'absolute',
     bottom: 28,
@@ -96,21 +105,21 @@ const styles = StyleSheet.create({
 
 function PatientPdfDocument({ record, generatedAt }: { record: PatientRecord; generatedAt: string }) {
   const odiCat = odiCategory(record.odiScore);
-  const hadsCatA = hadsCategory(record.hads.a);
-  const hadsCatD = hadsCategory(record.hads.d);
+  const phq9Cat = phq9Category(record.phq9);
+  const gad7Cat = gad7Category(record.gad7);
 
   return (
     <Document
       title={`Pain Doc Rotorua — Assessment — ${record.name}`}
       author="Pain Doc Rotorua"
-      subject="ODI & HADS questionnaire results"
+      subject="Section A, ODI, PHQ-9 & GAD-7 questionnaire results"
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.title}>Patient Assessment Report</Text>
             <Text style={styles.subtitle}>
-              Pain Doc Rotorua · Oswestry Disability Index · Hospital Anxiety & Depression Scale
+              Pain Doc Rotorua · Section A · Oswestry Disability Index · PHQ-9 · GAD-7
             </Text>
           </View>
           <Text style={{ fontSize: 8, color: C.faint }}>Generated {generatedAt}</Text>
@@ -138,19 +147,40 @@ function PatientPdfDocument({ record, generatedAt }: { record: PatientRecord; ge
             <Text style={[styles.scoreCat, { color: catColor(odiCat.color) }]}>{odiCat.label}</Text>
           </View>
           <View style={styles.scoreCard}>
-            <Text style={styles.scoreLabel}>HADS Anxiety</Text>
+            <Text style={styles.scoreLabel}>PHQ-9</Text>
             <Text style={styles.scoreValue}>
-              {record.hads.a}<Text style={{ fontSize: 10, color: C.faint }}> /21</Text>
+              {record.phq9}<Text style={{ fontSize: 10, color: C.faint }}> /27</Text>
             </Text>
-            <Text style={[styles.scoreCat, { color: catColor(hadsCatA.color) }]}>{hadsCatA.label}</Text>
+            <Text style={[styles.scoreCat, { color: catColor(phq9Cat.color) }]}>{phq9Cat.label}</Text>
           </View>
           <View style={styles.scoreCard}>
-            <Text style={styles.scoreLabel}>HADS Depression</Text>
+            <Text style={styles.scoreLabel}>GAD-7</Text>
             <Text style={styles.scoreValue}>
-              {record.hads.d}<Text style={{ fontSize: 10, color: C.faint }}> /21</Text>
+              {record.gad7}<Text style={{ fontSize: 10, color: C.faint }}> /21</Text>
             </Text>
-            <Text style={[styles.scoreCat, { color: catColor(hadsCatD.color) }]}>{hadsCatD.label}</Text>
+            <Text style={[styles.scoreCat, { color: catColor(gad7Cat.color) }]}>{gad7Cat.label}</Text>
           </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Section A — Pain history</Text>
+        {record.bodyMapImage && <Image src={record.bodyMapImage} style={styles.bodyMapImg} />}
+        <View>
+          {SECTION_A_QUESTIONS.map(q => {
+            const rows = q.fields
+              .map(f => ({ field: f, val: record.sectionAAnswers[f.id] }))
+              .filter(r => r.val);
+            if (!rows.length) return null;
+            return (
+              <View key={q.id} style={styles.sectionAItem} wrap={false}>
+                <Text style={styles.sectionAQuestion}>{q.number}. {q.title}</Text>
+                {rows.map(r => (
+                  <Text key={r.field.id} style={styles.sectionAAnswer}>
+                    {q.fields.length > 1 ? `${r.field.label}: ${r.val}` : r.val}
+                  </Text>
+                ))}
+              </View>
+            );
+          })}
         </View>
 
         <Text style={styles.sectionTitle}>Oswestry Disability Index responses</Text>
@@ -167,27 +197,43 @@ function PatientPdfDocument({ record, generatedAt }: { record: PatientRecord; ge
           })}
         </View>
 
-        <Text style={styles.sectionTitle}>HADS responses</Text>
+        <Text style={styles.sectionTitle}>PHQ-9 responses</Text>
         <View>
-          {HADS_QUESTIONS.map(q => {
-            const val = record.hadsAnswers[q.id];
+          {PHQ9_QUESTIONS.map(q => {
+            const val = record.phq9Answers[q.id];
             return (
               <View key={q.id} style={styles.row} wrap={false}>
-                <View style={styles.qCell}>
-                  <Text style={[styles.tag, { color: q.type === 'A' ? '#7c3aed' : '#2563eb' }]}>
-                    {q.type === 'A' ? 'ANXIETY' : 'DEPRESSION'}
-                  </Text>
-                  <Text style={{ color: C.sub }}>{q.text}</Text>
-                </View>
+                <Text style={styles.qCell}>{q.text}</Text>
                 <Text style={styles.aCell}>{val !== undefined ? q.opts[val] : 'Not answered'}</Text>
-                <Text style={styles.sCell}>{val !== undefined ? `+${q.scores[val]}` : '—'}</Text>
+                <Text style={styles.sCell}>{val !== undefined ? val : '—'}</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {record.phq9Difficulty && (
+          <Text style={{ fontSize: 9, color: C.sub, marginTop: 4 }}>
+            Functional difficulty from the above (PHQ-9): {record.phq9Difficulty}
+          </Text>
+        )}
+
+        <Text style={styles.sectionTitle}>GAD-7 responses</Text>
+        <View>
+          {GAD7_QUESTIONS.map(q => {
+            const val = record.gad7Answers[q.id];
+            return (
+              <View key={q.id} style={styles.row} wrap={false}>
+                <Text style={styles.qCell}>{q.text}</Text>
+                <Text style={styles.aCell}>{val !== undefined ? q.opts[val] : 'Not answered'}</Text>
+                <Text style={styles.sCell}>{val !== undefined ? val : '—'}</Text>
               </View>
             );
           })}
         </View>
 
         <Text style={styles.footer} fixed>
-          © Dr. Ian Wallbridge. These tools do not substitute for the informed opinion of a licensed physician. All scores should be re-checked.
+          © Dr. Ian Wallbridge. These tools do not substitute for the informed opinion of a licensed physician. All scores should be re-checked.{'\n'}
+          Questionnaire v1 — July 2026 · Developed by Dr Ian Wallbridge
         </Text>
       </Page>
     </Document>

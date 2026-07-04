@@ -4,10 +4,15 @@ export interface PatientRecord {
   name: string;
   dob: string;
   date: string;
+  bodyMapImage: string | null;
+  sectionAAnswers: Record<string, string>;
   odiScore: number;
   odiAnswers: Record<string, number>;
-  hads: { a: number; d: number };
-  hadsAnswers: Record<string, number>;
+  phq9: number;
+  phq9Answers: Record<string, number>;
+  phq9Difficulty: string;
+  gad7: number;
+  gad7Answers: Record<string, number>;
 }
 
 export interface PatientInfo {
@@ -24,12 +29,29 @@ export interface ODIQuestion {
   optional?: boolean;
 }
 
-export interface HADSQuestion {
+export interface ScaleQuestion {
   id: string;
-  type: 'A' | 'D';
   text: string;
   opts: string[];
-  scores: number[];
+}
+
+export type SectionAFieldType = 'text' | 'textarea' | 'number' | 'chips';
+
+export interface SectionAField {
+  id: string;
+  label: string;
+  subtitle?: string;
+  type: SectionAFieldType;
+  placeholder?: string;
+  options?: string[];
+  optional?: boolean;
+}
+
+export interface SectionAQuestion {
+  id: string;
+  number: number;
+  title: string;
+  fields: SectionAField[];
 }
 
 export interface ScoreCategory {
@@ -37,10 +59,15 @@ export interface ScoreCategory {
   color: string;
 }
 
-export interface SOAPNote {
-  subjective: string;
-  objective: string;
-  assessment: string;
+export interface MSKLetter {
+  recipients: string;
+  diagnosis: string;
+  analysis: string;
+  history: string;
+  investigations: string;
+  examination: string;
+  treatment: string;
+  exercise: string;
   plan: string;
 }
 
@@ -50,5 +77,5 @@ export interface NoteEntry {
   patientName: string;
   dob: string;
   visitDate: string;
-  soap: SOAPNote;
+  letter: MSKLetter;
 }

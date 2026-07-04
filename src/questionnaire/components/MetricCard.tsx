@@ -10,11 +10,11 @@ export default function MetricCard({
   badge?: React.ReactNode;
 }) {
   return (
-    <div className="bg-[#F4F3EF] rounded-2xl p-4 border border-[#E2E8E6]">
-      <p className="text-[10px] font-bold text-[#BDCBC8] uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-3xl font-bold text-[#1A2623] leading-none mb-2">{value}</p>
+    <div className="bg-[#F0FDFA] rounded-2xl p-4 border border-[#CCFBF1]">
+      <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest mb-1">{label}</p>
+      <p className="text-3xl font-bold text-[#134E4A] leading-none mb-2">{value}</p>
       {badge && <div className="mb-1">{badge}</div>}
-      {sub && <p className="text-xs text-[#9BADA9]">{sub}</p>}
+      {sub && <p className="text-xs text-[#94A3B8]">{sub}</p>}
     </div>
   );
 }

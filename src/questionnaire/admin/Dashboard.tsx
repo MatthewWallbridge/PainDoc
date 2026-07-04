@@ -1,18 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { loadRecords, deleteRecord } from '../../lib/supabase';
-import { odiCategory, hadsCategory } from '../../lib/assessments';
+import { odiCategory, phq9Category, gad7Category } from '../../lib/assessments';
 import type { PatientRecord } from '../../lib/types';
 import ScoreBadge from '../components/ScoreBadge';
 import Avatar from '../components/Avatar';
 import AdminHeader from './AdminHeader';
+import ApiKeyInput from '../../clinical-notes/components/ApiKeyInput';
 
-type SortKey = 'name' | 'date' | 'odiScore' | 'anxiety' | 'depression';
+type SortKey = 'name' | 'date' | 'odiScore' | 'phq9' | 'gad7';
 type SortDir = 'asc' | 'desc';
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) return <span className="text-gray-300 ml-1">↕</span>;
-  return <span className="text-[#0B5E47] ml-1">{dir === 'asc' ? '↑' : '↓'}</span>;
+  return <span className="text-[#0891B2] ml-1">{dir === 'asc' ? '↑' : '↓'}</span>;
 }
 
 function Th({ label, field, sortKey, sortDir, onSort }: {
@@ -40,6 +41,12 @@ export default function Dashboard() {
   const [deletePending, setDeletePending] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [loadError,     setLoadError]     = useState<string | null>(null);
+  const [apiKey,        setApiKey]        = useState(() => localStorage.getItem('paindoc_api_key') || '');
+
+  function handleApiKey(val: string) {
+    setApiKey(val);
+    localStorage.setItem('paindoc_api_key', val);
+  }
 
   function refresh() {
     setRecords(null);
@@ -85,8 +92,8 @@ export default function Dashboard() {
         case 'name':       return dir * (a.name || '').localeCompare(b.name || '');
         case 'date':       return dir * (a.date || '').localeCompare(b.date || '');
         case 'odiScore':   return dir * (a.odiScore - b.odiScore);
-        case 'anxiety':    return dir * (a.hads.a - b.hads.a);
-        case 'depression': return dir * (a.hads.d - b.hads.d);
+        case 'phq9':       return dir * (a.phq9 - b.phq9);
+        case 'gad7':       return dir * (a.gad7 - b.gad7);
         default: return 0;
       }
     });
@@ -111,15 +118,35 @@ export default function Dashboard() {
                   : `${records.length} total record${records.length !== 1 ? 's' : ''}`}
             </p>
           </div>
-          <button
-            onClick={refresh}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors self-start sm:self-auto"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0114.13-1.13M20 15a9 9 0 01-14.13 1.13" />
-            </svg>
-            Refresh
-          </button>
+          <div className="flex items-center gap-4 self-start sm:self-auto">
+            <button
+              onClick={async () => {
+                const { downloadPreamblePdf } = await import('../../pdf/PreamblePdf');
+                await downloadPreamblePdf();
+              }}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors"
+              title="The 'Before Your First Consultation' letter — send this out with the questionnaire link"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Preamble letter (PDF)
+            </button>
+            <button
+              onClick={refresh}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0114.13-1.13M20 15a9 9 0 01-14.13 1.13" />
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* API key — set once here, shared by Clinical Notes and pre-consultation letters */}
+        <div className="mb-6">
+          <ApiKeyInput value={apiKey} onChange={handleApiKey} />
         </div>
 
         {/* Search */}
@@ -131,14 +158,14 @@ export default function Dashboard() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by patient name…"
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-800 focus:outline-none focus:border-[#0B5E47] focus:ring-2 focus:ring-[#0B5E47]/20 transition"
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-800 focus:outline-none focus:border-[#0891B2] focus:ring-2 focus:ring-[#0891B2]/20 transition"
           />
         </div>
 
         {/* Loading */}
         {records === null && (
           <div className="flex justify-center py-20">
-            <div className="w-6 h-6 border-2 border-[#0B5E47]/20 border-t-[#0B5E47] rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#0891B2]/20 border-t-[#0891B2] rounded-full animate-spin" />
           </div>
         )}
 
@@ -160,7 +187,7 @@ export default function Dashboard() {
 
         {/* Table — desktop */}
         {records !== null && displayed.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-[0_2px_10px_rgba(8,145,178,0.06)] overflow-hidden">
             {/* Desktop table */}
             <div className="hidden lg:block overflow-x-auto">
               <table className="w-full">
@@ -169,17 +196,17 @@ export default function Dashboard() {
                     <Th label="Patient"    field="name"       {...thProps} />
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Date of Birth</th>
                     <Th label="Assessed"   field="date"       {...thProps} />
-                    <Th label="ODI"        field="odiScore"   {...thProps} />
-                    <Th label="Anxiety"    field="anxiety"    {...thProps} />
-                    <Th label="Depression" field="depression" {...thProps} />
+                    <Th label="ODI"    field="odiScore" {...thProps} />
+                    <Th label="PHQ-9"  field="phq9"     {...thProps} />
+                    <Th label="GAD-7"  field="gad7"     {...thProps} />
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {displayed.map(record => {
-                    const odiCat   = odiCategory(record.odiScore);
-                    const hadsCatA = hadsCategory(record.hads.a);
-                    const hadsCatD = hadsCategory(record.hads.d);
+                    const odiCat  = odiCategory(record.odiScore);
+                    const phq9Cat = phq9Category(record.phq9);
+                    const gad7Cat = gad7Category(record.gad7);
                     const isPending = deletePending === record.id;
                     return (
                       <tr key={record.id} className={`hover:bg-gray-50 transition-colors ${isPending ? 'bg-red-50' : ''}`}>
@@ -195,10 +222,10 @@ export default function Dashboard() {
                           <ScoreBadge color={odiCat.color}>ODI {record.odiScore}%</ScoreBadge>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <ScoreBadge color={hadsCatA.color}>{record.hads.a} — {hadsCatA.label}</ScoreBadge>
+                          <ScoreBadge color={phq9Cat.color}>{record.phq9} — {phq9Cat.label}</ScoreBadge>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <ScoreBadge color={hadsCatD.color}>{record.hads.d} — {hadsCatD.label}</ScoreBadge>
+                          <ScoreBadge color={gad7Cat.color}>{record.gad7} — {gad7Cat.label}</ScoreBadge>
                         </td>
                         <td className="px-4 py-3 text-right">
                           {isPending ? (
@@ -217,7 +244,7 @@ export default function Dashboard() {
                             <div className="flex items-center justify-end gap-3">
                               <Link
                                 to={`/admin/submissions/${record.id}`}
-                                className="text-xs font-semibold text-[#0B5E47] hover:text-[#085041] transition-colors"
+                                className="text-xs font-semibold text-[#0891B2] hover:text-[#0E7490] transition-colors"
                               >
                                 View
                               </Link>
@@ -243,9 +270,9 @@ export default function Dashboard() {
             {/* Mobile card list */}
             <div className="lg:hidden divide-y divide-gray-100">
               {displayed.map(record => {
-                const odiCat   = odiCategory(record.odiScore);
-                const hadsCatA = hadsCategory(record.hads.a);
-                const hadsCatD = hadsCategory(record.hads.d);
+                const odiCat  = odiCategory(record.odiScore);
+                const phq9Cat = phq9Category(record.phq9);
+                const gad7Cat = gad7Category(record.gad7);
                 const isPending = deletePending === record.id;
                 return (
                   <div key={record.id} className={`p-4 ${isPending ? 'bg-red-50' : ''}`}>
@@ -258,8 +285,8 @@ export default function Dashboard() {
                     </div>
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       <ScoreBadge color={odiCat.color}>ODI {record.odiScore}%</ScoreBadge>
-                      <ScoreBadge color={hadsCatA.color}>A {record.hads.a}</ScoreBadge>
-                      <ScoreBadge color={hadsCatD.color}>D {record.hads.d}</ScoreBadge>
+                      <ScoreBadge color={phq9Cat.color}>PHQ-9 {record.phq9}</ScoreBadge>
+                      <ScoreBadge color={gad7Cat.color}>GAD-7 {record.gad7}</ScoreBadge>
                     </div>
                     {isPending ? (
                       <div className="flex items-center gap-3 text-xs">
@@ -269,7 +296,7 @@ export default function Dashboard() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-4">
-                        <Link to={`/admin/submissions/${record.id}`} className="text-xs font-semibold text-[#0B5E47]">View details →</Link>
+                        <Link to={`/admin/submissions/${record.id}`} className="text-xs font-semibold text-[#0891B2]">View details →</Link>
                         <button onClick={() => setDeletePending(record.id)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Delete</button>
                       </div>
                     )}

@@ -8,19 +8,35 @@
 
 -- ── Patient submissions ──────────────────────────────────────
 create table if not exists submissions (
-  id              uuid primary key default gen_random_uuid(),
-  created_at      timestamptz default now(),
-  patient_name    text not null,
-  dob             text,
-  assessment_date text,
-  odi_answers     jsonb,
-  odi_score       integer,
-  hads_answers    jsonb,
-  hads_anxiety    integer,
-  hads_depression integer,
-  ai_summary      text,                                 -- reserved for future AI summary
-  delete_token    uuid default gen_random_uuid()        -- reserved; not used by the app
+  id                 uuid primary key default gen_random_uuid(),
+  created_at         timestamptz default now(),
+  patient_name       text not null,
+  dob                text,
+  assessment_date    text,
+  body_map_image     text,                                  -- base64 PNG data URL of the drawn body map
+  section_a_answers  jsonb,                                  -- SOCRATES-ADS / pills-skills-needles-knives / ICE free-text answers
+  odi_answers        jsonb,
+  odi_score          integer,
+  phq9_answers       jsonb,
+  phq9_score         integer,
+  phq9_difficulty    text,                                   -- "how difficult" follow-up, not scored
+  gad7_answers       jsonb,
+  gad7_score         integer,
+  ai_summary         text,                                 -- reserved for future AI summary
+  delete_token       uuid default gen_random_uuid()        -- reserved; not used by the app
 );
+
+-- Migrate an existing table from the old HADS-based schema.
+alter table submissions add column if not exists body_map_image text;
+alter table submissions add column if not exists section_a_answers jsonb;
+alter table submissions add column if not exists phq9_answers jsonb;
+alter table submissions add column if not exists phq9_score integer;
+alter table submissions add column if not exists phq9_difficulty text;
+alter table submissions add column if not exists gad7_answers jsonb;
+alter table submissions add column if not exists gad7_score integer;
+alter table submissions drop column if exists hads_answers;
+alter table submissions drop column if exists hads_anxiety;
+alter table submissions drop column if exists hads_depression;
 
 alter table submissions enable row level security;
 
@@ -30,12 +46,14 @@ alter table submissions drop constraint if exists patient_name_len;
 alter table submissions drop constraint if exists odi_score_range;
 alter table submissions drop constraint if exists hads_a_range;
 alter table submissions drop constraint if exists hads_d_range;
+alter table submissions drop constraint if exists phq9_score_range;
+alter table submissions drop constraint if exists gad7_score_range;
 
 alter table submissions
-  add constraint patient_name_len check (char_length(patient_name) between 1 and 120),
-  add constraint odi_score_range  check (odi_score is null or odi_score between 0 and 100),
-  add constraint hads_a_range     check (hads_anxiety is null or hads_anxiety between 0 and 21),
-  add constraint hads_d_range     check (hads_depression is null or hads_depression between 0 and 21);
+  add constraint patient_name_len  check (char_length(patient_name) between 1 and 120),
+  add constraint odi_score_range   check (odi_score is null or odi_score between 0 and 100),
+  add constraint phq9_score_range  check (phq9_score is null or phq9_score between 0 and 27),
+  add constraint gad7_score_range  check (gad7_score is null or gad7_score between 0 and 21);
 
 -- ── Admin allowlist ──────────────────────────────────────────
 -- Only user IDs in this table can read/update/delete submissions.
